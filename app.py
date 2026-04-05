@@ -23,15 +23,16 @@ if api_key:
 
     if st.button("Generate GHS Protocol"):
         with st.spinner("Consulting GHS Standard Treatment Guidelines..."):
-            completion = client.chat.completions.create(
-                model="llama3-8b-8192",
+                        completion = client.chat.completions.create(
+                model="llama-3.1-8b-instant",
                 messages=[
-                    {"role": "system", "content": "You are the Sankofa Co-Pilot. Use Ghana Health Service protocols. Provide triage, 15kg-based dosage for malaria/fever, and a Twi summary for the patient."},
-                    {"role": "user", "content": patient_case}
+                    {"role": "system", "content": "You are a GHS clinical protocol expert."},
+                    {"role": "user", "content": f"Provide GHS protocol for: {patient_case}"}
                 ]
             )
             st.success("Protocol Ready!")
             st.write(completion.choices[0].message.content)
+
 else:
     st.warning("Please enter your Groq API Key in the sidebar to begin.")
 
