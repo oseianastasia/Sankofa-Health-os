@@ -9,9 +9,11 @@ st.markdown("*GHS Clinical Intelligence Prototype*")
 # 🔑 Sidebar Setup
 with st.sidebar:
     st.header("Settings")
-    api_key = st.text_input("Enter Groq API Key", type="password")
+    # This line below is the "Magic" that connects to your Secrets
+    api_key = st.secrets["GROQ_API_KEY"] 
     st.divider()
-    st.info("Sankofa is optimized for rural CHPS compounds.")
+    st.info("Sankofa is optimized for rural CHPs")
+
 
 # 🧠 Core Logic
 if api_key:
