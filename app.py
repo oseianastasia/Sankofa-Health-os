@@ -1,4 +1,4 @@
-       import streamlit as st
+         import streamlit as st
 from groq import Groq
 import pandas as pd
 import uuid
@@ -34,7 +34,7 @@ if api_key:
     if 'active_session' not in st.session_state:
         st.session_state.active_session = None
 
-    # 📱 4. NAVIGATION (Updated with NHIS)
+    # 📱 4. NAVIGATION
     with st.sidebar:
         st.markdown("<h1>SANKOFA <span style='color: #3B82F6;'>OS</span></h1>", unsafe_allow_html=True)
         menu = st.radio("SYSTEM MODULES", [
@@ -55,7 +55,6 @@ if api_key:
 
     # --- 6. MODULES ---
 
-    # MODULE 1: AMBIENT SCRIBE
     if menu == "🎙️ Ambient Scribe & Chat":
         st.subheader("Consultation Mode")
         audio = st.audio_input("Record Consultation")
@@ -71,62 +70,56 @@ if api_key:
         
         if st.session_state.active_session:
             st.code(st.session_state.active_session)
-            query = st.text_input("💬 Ask Co-Pilot (e.g. 'Dosage for child?')")
+            query = st.text_input("💬 Ask Co-Pilot")
             if query:
                 res = client.chat.completions.create(model="llama-3.1-8b-instant",
                     messages=[{"role": "system", "content": "Ghana Health expert. English only."},
                               {"role": "user", "content": f"Context: {st.session_state.active_session}\nQuestion: {query}"}])
                 st.write(res.choices[0].message.content)
 
-    # MODULE 2: EMERGENCY & HOTLINE (Updated)
     elif menu == "🚑 Emergency & Hotline":
         st.subheader("Emergency Coordination")
         st.error("🚨 PRIMARY: National Ambulance (193)")
         st.markdown('<a href="tel:193" style="text-decoration:none;"><div style="background:#ef4444; color:white; padding:15px; border-radius:10px; text-align:center; font-weight:bold;">📞 CALL NAS 193</div></a>', unsafe_allow_html=True)
-        
         st.divider()
         st.subheader("⚠️ ESCALATION HOTLINES")
-        st.caption("Use if Ambulance is unavailable or for Ministry directives.")
         c1, c2 = st.columns(2)
         with c1:
             st.markdown('<a href="tel:0302665651" style="text-decoration:none;"><div style="background:#1e2937; color:white; padding:10px; border-radius:5px; text-align:center;">📞 MoH DIRECT</div></a>', unsafe_allow_html=True)
         with c2:
-            st.markdown('<a href="tel:0302661352" style="text-decoration:none;"><div style="background:#1e2937; color:white; padding:10px; border-radius:5px; text-align:center;">📞 GHS HEADQUARTERS</div></a>', unsafe_allow_html=True)
+            st.markdown('<a href="tel:0302661352" style="text-decoration:none;"><div style="background:#1e2937; color:white; padding:10px; border-radius:5px; text-align:center;">📞 GHS HQ</div></a>', unsafe_allow_html=True)
 
-    # MODULE 4: DISEASE SURVEILLANCE (Fixed)
-    elif menu == "📈 Disease Surveillance":
-        st.subheader("Regional Epidemic Radar")
-        st.info("Live tracking of GHS notification-required diseases.")
-        data = pd.DataFrame({"Disease": ["Malaria", "Cholera", "Yellow Fever", "COVID-19"], "Cases": [145, 3, 0, 12]})
-        fig = px.bar(data, x='Disease', y='Cases', color='Cases', color_continuous_scale="Reds")
-        st.plotly_chart(fig, use_container_width=True)
-        if 3 > 0: st.error("🚨 ALERT: Cholera cases detected in District. Protocol: Contact Public Health Unit.")
-
-    # MODULE 6: NHIS CLAIMS (New)
-    elif menu == "💳 NHIS Claims Portal":
-        st.subheader("NHIS Digital Claims E-Portal")
-        if st.session_state.active_session:
-            st.success("Patient session detected. Ready for auto-billing.")
-            st.write("**G-DRG Code Recommendation:** 4022 (Malaria - Uncomplicated)")
-            if st.button("Submit E-Claim to NHIA"):
-                st.balloons()
-                st.success("Claim #"+str(uuid.uuid4())[:8]+" submitted successfully.")
-        else:
-            st.warning("No active patient session. Complete a consultation to file a claim.")
-
-    # ... (Other modules: Supply Chain & Outreach remain as previously updated)
     elif menu == "📦 Smart Supply Chain":
         st.subheader("Inventory Radar")
-        st.table(pd.DataFrame(list(st.session_state.inventory.items()), columns=["Item", "Stock"]))
-    
+        inv_df = pd.DataFrame(list(st.session_state.inventory.items()), columns=["Item", "Stock"])
+        st.table(inv_df)
+        item_to_restock = st.selectbox("Restock Item", inv_df["Item"])
+        if st.button("Confirm Restock"):
+            st.session_state.inventory[item_to_restock] += 50
+            st.rerun()
+
+    elif menu == "📈 Disease Surveillance":
+        st.subheader("Regional Epidemic Radar")
+        data = pd.DataFrame({"Disease": ["Malaria", "Cholera", "Yellow Fever"], "Cases": [145, 3, 0]})
+        st.plotly_chart(px.bar(data, x='Disease', y='Cases', color='Cases'), use_container_width=True)
+
     elif menu == "👥 Patient Outreach":
         st.subheader("Community Outreach")
         if st.session_state.active_session:
-            chan = st.selectbox("Channel", ["📞 Voice Call", "💬 WhatsApp", "📩 SMS"])
+            chan = st.radio("Channel", ["📞 Voice Call", "💬 WhatsApp", "📩 SMS"])
             lang = st.selectbox("Language", ["Twi", "Ga", "Ewe", "Hausa", "English"])
             if st.button("Send Reminder"): st.success(f"Sent {lang} {chan}")
         else: st.warning("Record a session first.")
 
+    elif menu == "💳 NHIS Claims Portal":
+        st.subheader("NHIS Digital Claims")
+        if st.session_state.active_session:
+            st.write("**Recommended G-DRG:** 4022")
+            if st.button("Submit E-Claim"):
+                st.balloons()
+                st.success("Claim Submitted!")
+        else: st.warning("No active session.")
+
 else:
     st.error("Add GROQ_API_KEY to Secrets.")
-         
+                  
