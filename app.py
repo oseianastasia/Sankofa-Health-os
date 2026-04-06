@@ -10,23 +10,13 @@ st.set_page_config(page_title="Sankofa OS", layout="wide", page_icon="🇬🇭")
 
 st.markdown("""
     <style>
-    [data-testid="stSidebar"] { background-color: #0f172a; min-width: 350px; }
-    [data-testid="stSidebar"] * { color: #cbd5e1 !important; }
-    .status-badge { 
-        background-color: #162e35; border: 1px solid #1e40af; padding: 12px; 
-        border-radius: 8px; margin-top: 10px; font-size: 13px; color: #93c5fd !important; 
-        font-weight: bold; text-align: center;
+    [data-testid="stSidebar"] { 
+        background-color: #0f172a; 
     }
-    .node-badge { 
-        background-color: #1e293b; padding: 12px; border-radius: 8px; 
-        margin-top: 10px; font-size: 13px; text-align: center; color: #f8fafc !important;
+    [data-testid="stSidebar"] > div:first-child {
+        width: 100% !important;
     }
-    .ghs-header { 
-        background: white; padding: 20px; border-radius: 15px; 
-        border-left: 12px solid #ef4444; margin-bottom: 20px; 
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
-    }
-    .stButton>button { width: 100%; border-radius: 10px; font-weight: 700; height: 3em; }
+    /* ... rest of the code I gave you ... */
     </style>
     """, unsafe_allow_html=True)
 
