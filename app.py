@@ -14,69 +14,121 @@ with st.sidebar:
     st.divider()
     st.info("Sankofa is optimized for rural CHPs")
 
-## 🧠 Sankofa Dashboard
+##import streamlit as st
+from groq import Groq
+
+# 🎨 Custom Aesthetic Styling
+st.set_page_config(page_title="Sankofa Health OS", page_icon="🩺", layout="wide")
+
+st.markdown("""
+    <style>
+    .main { background-color: #f8f9fa; }
+    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; border: 1px solid #e0e0e0; }
+    .stButton>button { width: 100%; border-radius: 5px; height: 3em; font-weight: bold; }
+    .status-card { padding: 20px; border-radius: 10px; color: white; margin-bottom: 10px; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# 🔑 Access Secrets
+api_key = st.secrets["GROQ_API_KEY"]
+
 if api_key:
     client = Groq(api_key=api_key)
-    
-    # Create the Tabs for the Dashboard
-    tab1, tab2, tab3 = st.tabs(["🩺 Clinical Co-Pilot", "📦 Logistics Tracker", "💰 NHIS Calculator"])
 
-    # --- TAB 1: CLINICAL CO-PILOT ---
+    # 🗄️ System "Database" (Session State)
+    if 'inventory' not in st.session_state:
+        st.session_state.inventory = {"ACT (Adult)": 45, "RDT Kits": 12, "Amoxicillin": 80}
+    if 'beds' not in st.session_state:
+        st.session_state.beds = {"District Hospital A": 5, "Ridge Hospital": 0, "Municipal Clinic": 2}
+
+    # 🏥 Header Section
+    st.title("🏥 SANKOFA HEALTH OS")
+    st.markdown("### *GHS Clinical Intelligence & Resource Coordination*")
+    st.divider()
+
+    # 📑 The Dashboard Tabs
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "🩺 Clinical Co-Pilot", 
+        "🚑 Referral & Beds", 
+        "📦 Logistics Tracker", 
+        "💰 NHIS Calculator"
+    ])
+
+    # --- TAB 1: CLINICAL CO-PILOT (The Brain) ---
     with tab1:
         st.subheader("AVHI: AI Virtual Health Intelligence")
-        patient_case = st.text_area("Describe the case (Symptoms, age, weight):", placeholder="e.g. 5yo male, high fever, shivering, RDT positive")
+        st.info("💡 Pro-Tip: Use your mobile keyboard's 🎤 icon to dictate in Twi or English.")
         
-        if st.button("Generate GHS Protocol"):
-            with st.spinner("Consulting Ghana MoH & GHS Standards..."):
+        patient_case = st.text_area("Patient History / Vitals:", height=150, placeholder="e.g. 5yo Male, Fever 39C, RDT positive, coughing...")
+
+        if st.button("Generate GHS Protocol", type="primary"):
+            with st.spinner("Consulting Ghana MoH Standard Treatment Guidelines..."):
                 completion = client.chat.completions.create(
                     model="llama-3.1-8b-instant",
                     messages=[
-                        {
-                            "role": "system", 
-                            "content": """You are AVHI, the AI core of Sankofa Health OS. 
-                            Your knowledge is based STRICTLY on the Ghana Ministry of Health (MoH) 
-                            Standard Treatment Guidelines (STG) and GHS clinical protocols.
-                            
-                            For every case, provide:
-                            1. **Clinical Management**: Step-by-step per Ghana STG.
-                            2. **Essential Meds**: List meds using Ghana NHIS generic names.
-                            3. **G-DRG Code**: Provide the relevant Ghana Diagnosis-Related Group code for NHIS.
-                            4. **Referral**: Criteria for referring from CHPS to District Hospital."""
-                        },
-                        {
-                            "role": "user", 
-                            "content": f"Based on Ghana MoH/GHS protocols, manage this case: {patient_case}"
-                        }
+                        {"role": "system", "content": """You are AVHI. Your knowledge is based STRICTLY on the Ghana MoH STG. 
+                        Always provide: 1. Clinical Steps (GHS), 2. Essential Meds (NHIS Generic), 3. G-DRG Code."""},
+                        {"role": "user", "content": f"Manage this case per Ghana GHS/MoH protocols: {patient_case}"}
                     ]
                 )
-                st.markdown(completion.choices[0].message.content)
+                response = completion.choices[0].message.content
+                st.markdown(response)
+                
+                # Auto-deduct stock if Malaria is treated
+                if "Malaria" in response or "ACT" in response:
+                    st.session_state.inventory["ACT (Adult)"] -= 1
+                    st.session_state.inventory["RDT Kits"] -= 1
+                    st.toast("Inventory Auto-Updated", icon="📦")
 
-    # --- TAB 2: LOGISTICS TRACKER ---
+    # --- TAB 2: REFERRAL & BEDS (No-Bed Syndrome Fix) ---
     with tab2:
-        st.subheader("Inventory & Stock Management")
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Artesunate (ACT)", "45", "-5")
-        col2.metric("Amoxicillin", "120", "+12")
-        col3.metric("RDT Kits", "12", "-20", delta_color="inverse")
+        st.subheader("📍 Emergency Coordination")
         
-        st.info("⚠️ Low Stock Alert: RDT Kits are below the safety threshold for this CHPS zone.")
-        st.button("Request Re-stock from District")
+        col_nas, col_handover = st.columns(2)
+        with col_nas:
+            if st.button("🚨 DISPATCH AMBULANCE (193)"):
+                st.error("Connecting to National Ambulance Service... Data Sent.")
+        
+        with col_handover:
+            target = st.selectbox("Destination Hospital", list(st.session_state.beds.keys()))
+            if st.button(f"Transfer Patient File to {target}"):
+                if st.session_state.beds[target] > 0:
+                    st.success(f"Bed Reserved at {target}!")
+                    st.session_state.beds[target] -= 1
+                else:
+                    st.warning("No Beds Available at selected facility.")
 
-    # --- TAB 3: NHIS CALCULATOR ---
+        st.markdown("---")
+        st.write("### Live Regional Bed Map")
+        c1, c2, c3 = st.columns(3)
+        for i, (hosp, count) in enumerate(st.session_state.beds.items()):
+            cols = [c1, c2, c3]
+            cols[i].metric(hosp, f"{count} Beds", delta="Available" if count > 0 else "FULL", delta_color="normal" if count > 0 else "inverse")
+
+    # --- TAB 3: LOGISTICS TRACKER (Supply Chain) ---
     with tab3:
-        st.subheader("Automated Claims Processing")
-        diagnosis = st.selectbox("Select G-DRG Diagnosis", ["Malaria (Uncomplicated)", "Pneumonia", "Diarrheal Disease", "Hypertension"])
+        st.subheader("Inventory Management")
+        l1, l2, l3 = st.columns(3)
+        l1.metric("ACT (Adult)", st.session_state.inventory["ACT (Adult)"])
+        l2.metric("RDT Kits", st.session_state.inventory["RDT Kits"], delta="-2 Today")
+        l3.metric("Amoxicillin", st.session_state.inventory["Amoxicillin"])
         
-        # Current Ghana NHIS G-DRG approximate rates for 2026 demo
-        rates = {"Malaria (Uncomplicated)": 48.00, "Pneumonia": 88.00, "Diarrheal Disease": 38.00, "Hypertension": 65.00}
+        if st.button("Request Emergency Re-stock"):
+            st.info("Re-stock request sent to District Medical Store.")
+
+    # --- TAB 4: NHIS CALCULATOR (Revenue) ---
+    with tab4:
+        st.subheader("NHIS Claims Assistant")
+        diagnosis = st.selectbox("Select Confirmed Diagnosis", ["Malaria", "Pneumonia", "Hypertension", "Anemia"])
+        rates = {"Malaria": 48.50, "Pneumonia": 85.00, "Hypertension": 62.00, "Anemia": 55.00}
         
-        st.write(f"**Estimated NHIS Reimbursement:** GHS {rates[diagnosis]:.2f}")
-        st.checkbox("Attach Digital Lab Result (RDT+)")
-        if st.button("Submit Claim to NHIA"):
-            st.success("Claim #SNK-992 queued for offline sync.")
-
-
+        st.write(f"### Estimated Reimbursement: **GHS {rates[diagnosis]:.2f}**")
+        if st.button("Submit Digital Claim"):
+            st.success("Claim submitted to NHIA portal successfully.")
 
 else:
-    st.warning("Please enter your Groq API Key in the sidebar to begin.")
+    st.error("Please configure your GROQ_API_KEY in Streamlit Secrets.")
+
+
+
 
