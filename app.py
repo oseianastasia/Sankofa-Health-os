@@ -5,16 +5,13 @@ import uuid
 import plotly.express as px
 from datetime import datetime
 
-# 🎨 1. UI THEME (EXACT TEMPLATE MATCH)
+# 🎨 1. UI THEME
 st.set_page_config(page_title="Sankofa OS", layout="wide", page_icon="🇬🇭")
 
 st.markdown("""
     <style>
-    /* Dark Sidebar Styling */
     [data-testid="stSidebar"] { background-color: #0f172a; min-width: 350px; }
     [data-testid="stSidebar"] * { color: #cbd5e1 !important; }
-    
-    /* GHS Status Badges */
     .status-badge { 
         background-color: #162e35; border: 1px solid #1e40af; padding: 12px; 
         border-radius: 8px; margin-top: 10px; font-size: 13px; color: #93c5fd !important; 
@@ -24,19 +21,16 @@ st.markdown("""
         background-color: #1e293b; padding: 12px; border-radius: 8px; 
         margin-top: 10px; font-size: 13px; text-align: center; color: #f8fafc !important;
     }
-
-    /* Branded Ministry Header */
     .ghs-header { 
         background: white; padding: 20px; border-radius: 15px; 
         border-left: 12px solid #ef4444; margin-bottom: 20px; 
         box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
     }
-    
     .stButton>button { width: 100%; border-radius: 10px; font-weight: 700; height: 3em; }
     </style>
     """, unsafe_allow_html=True)
 
-# 🔑 2. SYSTEM CORE & STATE
+# 🔑 2. SYSTEM CORE
 api_key = st.secrets.get("GROQ_API_KEY")
 if not api_key:
     st.error("SYSTEM ERROR: GROQ_API_KEY not found in Secrets.")
@@ -44,15 +38,15 @@ if not api_key:
 
 client = Groq(api_key=api_key)
 
-# Global State (Persistent History & Inventory)
+# Global State Management
 if 'inventory' not in st.session_state:
     st.session_state.inventory = {"ACT (Adult)": 45, "RDT Kits": 12, "Amoxicillin": 80, "Oxytocin": 15}
 if 'session_data' not in st.session_state:
-    st.session_data = "" 
+    st.session_state.session_data = "" 
 if 'current_node' not in st.session_state:
     st.session_state.current_node = "Accra Central"
 
-# 📍 LOCATION-BASED REFERRAL & BED DATA
+# 📍 LOCATION DATA
 NODES = {
     "Accra Central": {"Ridge": 5, "37 Military": 0, "Korle-Bu": 2},
     "Kumasi Node": {"KATH": 1, "Kumasi South": 8, "SDA": 4},
@@ -60,7 +54,7 @@ NODES = {
     "Ho Node": {"Ho Teaching": 4, "Trafalgar": 2, "Ho Municipal": 1}
 }
 
-# 📱 3. SIDEBAR (MATCHING YOUR TEMPLATE)
+# 📱 3. SIDEBAR
 with st.sidebar:
     st.markdown("<h2 style='letter-spacing:1px;'>SANKOFA OS</h2>", unsafe_allow_html=True)
     st.markdown("<p style='font-size:11px; opacity:0.8;'>GHANA DIGITAL HEALTH INFRASTRUCTURE<br>v6.0</p>", unsafe_allow_html=True)
@@ -83,7 +77,7 @@ with st.sidebar:
         <div class="node-badge">📍 Node: {st.session_state.current_node} | {datetime.now().strftime('%Y-%m-%d')}</div>
     """, unsafe_allow_html=True)
 
-# 🏥 4. BRANDED HEADER
+# 🏥 4. HEADER
 st.markdown("""<div class="ghs-header">
     <span style="color:#ef4444; font-weight:900; font-size:10px; letter-spacing:2px;">MINISTRY OF HEALTH • GHANA HEALTH SERVICE</span>
     <h2 style="margin:5px 0; color:#1e293b;">🏥 SANKOFA HEALTH OPERATING SYSTEM</h2>
@@ -91,7 +85,7 @@ st.markdown("""<div class="ghs-header">
 
 # --- 5. MODULES ---
 
-# 1. SCRIBE & NURSE CO-PILOT
+# 1. SCRIBE & CO-PILOT
 if menu == "🎙️ Ambient Clinical Scribe":
     st.subheader("Clinical Gateway (Voice + Manual)")
     t1, t2 = st.tabs(["🎤 Voice Scribe", "⌨️ Manual Entry & AI Co-Pilot"])
@@ -102,6 +96,7 @@ if menu == "🎙️ Ambient Clinical Scribe":
                 transcript = client.audio.transcriptions.create(file=("live.wav", audio.read()), model="whisper-large-v3").text
                 st.session_state.session_data = transcript
     with t2:
+        # Correctly using session_state.session_data
         st.session_state.session_data = st.text_area("Patient History (Type or Edit AI Notes):", value=st.session_state.session_data, height=150)
         st.markdown("### 💬 Clinical AI Co-Pilot")
         q = st.text_input("Ask Co-Pilot (e.g., 'What is the dosage for Malaria based on these notes?')")
@@ -112,7 +107,7 @@ if menu == "🎙️ Ambient Clinical Scribe":
             ])
             st.info(res.choices[0].message.content)
 
-# 2. EMERGENCY, REFERRAL & BED TRACKING
+# 2. EMERGENCY, REFERRAL & BEDS
 elif menu == "🚑 Emergency & Referral":
     st.subheader("Critical Coordination & Bed Tracking")
     st.error("🚨 NATIONAL AMBULANCE SERVICE: 193")
@@ -150,14 +145,14 @@ elif menu == "📦 Smart Supply Chain":
     if st.button("Request Emergency Restock"):
         st.success("Requisition sent to Regional Medical Store.")
 
-# 4. DISEASE SURVEILLANCE
+# 4. SURVEILLANCE
 elif menu == "📈 Disease Surveillance":
     st.subheader("Epidemic Radar")
     df = pd.DataFrame({"Disease": ["Malaria", "Cholera", "Meningitis"], "Cases": [145, 3, 0]})
     st.plotly_chart(px.bar(df, x='Disease', y='Cases', color='Cases', color_continuous_scale="Reds"), use_container_width=True)
     if 3 in df.values: st.error(f"🚨 CLUSTER ALERT: Cholera detected at {st.session_state.current_node}.")
 
-# 5. PATIENT CARE (SMS/WHATSAPP)
+# 5. PATIENT CARE
 elif menu == "👥 Patient Care & Adherence":
     st.subheader("Community Follow-up")
     p_name = st.text_input("Patient Name")
@@ -166,7 +161,7 @@ elif menu == "👥 Patient Care & Adherence":
     if st.button("Activate Follow-up"):
         st.success(f"Monitoring {p_name} in {lang} via {chan}.")
 
-# 6. NHIS CLAIMS (BILLING)
+# 6. NHIS CLAIMS
 elif menu == "💳 NHIS Claims Portal":
     st.subheader("NHIS Digital E-Claims")
     if st.session_state.session_data:
