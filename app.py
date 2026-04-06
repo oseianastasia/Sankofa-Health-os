@@ -1,128 +1,114 @@
-import streamlit as st
+ import streamlit as st
 from groq import Groq
 
-# 🎨 1. ELITE UI CONFIG (Must be first)
-st.set_page_config(page_title="Sankofa Health OS", page_icon="🛡️", layout="wide")
+# 🎨 1. CONFIG & ELITE UI STYLING
+st.set_page_config(page_title="Sankofa Health OS", page_icon="🇬🇭", layout="wide")
 
-# Professional Styling for 2026 Dashboard
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; background-color: #F9FAFB; }
+    /* Dark Professional Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #111827;
+        border-right: 1px solid #1f2937;
+    }
+    [data-testid="stSidebar"] * { color: #f9fafb !important; }
     
-    /* Sleek Card Styling */
-    .stMetric { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #F3F4F6; }
+    /* Main Background */
+    .stApp { background-color: #f9fafb; }
     
-    /* Professional Header */
+    /* Professional Header Card */
     .main-header {
         background: white;
-        padding: 25px;
-        border-radius: 15px;
+        padding: 24px;
+        border-radius: 16px;
         border-left: 8px solid #3B82F6;
         margin-bottom: 25px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
     
-    /* Buttons */
-    .stButton>button { border-radius: 10px; font-weight: 600; height: 3em; }
+    /* Metric Card Styling */
+    div[data-testid="stMetric"] {
+        background: white;
+        padding: 15px;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    /* Global Button Styling */
+    .stButton>button {
+        border-radius: 10px;
+        font-weight: 700;
+        height: 3.5em;
+        width: 100%;
+        transition: all 0.3s ease;
+    }
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# 🔑 2. ACCESS SECRETS
+# 🔑 2. API ACCESS
 api_key = st.secrets["GROQ_API_KEY"]
 
 if api_key:
     client = Groq(api_key=api_key)
 
-    # 🗄️ 3. SYSTEM STATE (Inventory & Beds)
+    # 🗄️ 3. SYSTEM STATE (Persistent Data)
     if 'inventory' not in st.session_state:
         st.session_state.inventory = {"ACT (Adult)": 45, "RDT Kits": 12, "Amoxicillin": 80}
     if 'beds' not in st.session_state:
         st.session_state.beds = {"District Hospital A": 5, "Ridge Hospital": 0, "Municipal Clinic": 2}
 
-    # 🏥 4. CLEAN HEADER (No Double Title!)
+    # 📱 4. VERTICAL NAVIGATION (Sidebar)
+    with st.sidebar:
+        st.markdown("<h2 style='letter-spacing: 1px;'>SANKOFA <span style='color: #3B82F6;'>OS</span></h2>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size: 11px; opacity: 0.7;'>v3.5 | GHS INTEGRATED SYSTEM</p>", unsafe_allow_html=True)
+        st.markdown("---")
+        
+        # Vertical Menu Selection
+        menu = st.radio(
+            "SYSTEM MODULES",
+            ["🩺 Clinical Co-Pilot", "🚑 Referral & Beds", "📦 Logistics Tracker", "💰 NHIS Calculator"],
+            index=0
+        )
+        
+        st.markdown("---")
+        st.success("● GHS Connection Active")
+        st.info("📍 Node: Greater Accra Region")
+
+    # 🏥 5. BRANDED HEADER (Universal & Professional)
     st.markdown("""
         <div class="main-header">
-            <span style="color: #6B7280; font-size: 13px; font-weight: 700; letter-spacing: 1px;">GHANA HEALTH SERVICE • CLINICAL INTELLIGENCE</span>
-            <h1 style="margin: 0; color: #111827; font-size: 28px;">SANKOFA HEALTH OS</h1>
-            <p style="margin: 0; color: #3B82F6; font-weight: 500;">Resource Coordination & CDSS Portal</p>
+            <span style="color: #ef4444; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;">Ministry of Health • Ghana Health Service</span>
+            <h1 style="margin: 5px 0; color: #111827; font-size: 26px;">🏥 SANKOFA HEALTH OS</h1>
+            <p style="margin: 0; color: #3B82F6; font-size: 14px; font-weight: 500;">Standard Treatment Guidelines (STG) Intelligence Portal</p>
         </div>
     """, unsafe_allow_html=True)
 
-    # 📑 5. NAVIGATION TABS
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "🩺 Clinical Co-Pilot", 
-        "🚑 Referral & Beds", 
-        "📦 Logistics Tracker", 
-        "💰 NHIS Calculator"
-    ])
+    # --- 6. PAGE CONTENT LOGIC ---
 
-    # --- TAB 1: CLINICAL CO-PILOT ---
-    with tab1:
-        st.subheader("AVHI Intelligence")
-        st.info("🎤 Pro-Tip: Tap the mic on your keyboard to speak your diagnosis.")
-        patient_case = st.text_area("Patient History & Vitals:", height=150, placeholder="e.g. 10yo Female, Temp 39C, RDT positive...")
+    if menu == "🩺 Clinical Co-Pilot":
+        st.subheader("Clinical Decision Support")
+        st.caption("Grounded in MoH Standard Treatment Guidelines")
+        
+        patient_case = st.text_area("Patient History & Vitals:", height=200, 
+                                    placeholder="e.g. 8yo Male, High Fever (39C), positive RDT, no danger signs...")
 
         if st.button("Generate GHS Protocol", type="primary"):
-            with st.spinner("Analyzing per Ghana MoH Guidelines..."):
+            with st.spinner("Analyzing against GHS/MoH Guidelines..."):
                 completion = client.chat.completions.create(
                     model="llama-3.1-8b-instant",
                     messages=[
-                        {"role": "system", "content": "You are AVHI. Base all advice on Ghana MoH Standard Treatment Guidelines. Provide Clinical Steps, Meds, and G-DRG Codes."},
-                        {"role": "user", "content": f"Manage this case: {patient_case}"}
+                        {"role": "system", "content": """You are AVHI, an AI clinical expert for Ghana. 
+                        Your knowledge is strictly based on the Ghana Ministry of Health Standard Treatment Guidelines (STG).
+                        Always provide: 1. Clinical Steps, 2. Generic Medications, 3. NHIS G-DRG Billing Code."""},
+                        {"role": "user", "content": f"Manage this case per Ghana STG: {patient_case}"}
                     ]
                 )
-                st.markdown(completion.choices[0].message.content)
+                st.markdown("### 📋 Recommended GHS Protocol")
+                st.write(completion.choices[0].message.content)
                 
-                if "Malaria" in completion.choices[0].message.content or "ACT" in completion.choices[0].message.content:
-                    st.session_state.inventory["ACT (Adult)"] -= 1
-                    st.session_state.inventory["RDT Kits"] -= 1
-                    st.toast("Inventory Updated: -1 ACT, -1 RDT", icon="📦")
-
-    # --- TAB 2: REFERRAL & BEDS (The No-Bed Syndrome Fix) ---
-    with tab2:
-        st.subheader("📍 Regional Coordination Hub")
-        
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("🚨 DISPATCH AMBULANCE (193)", use_container_width=True):
-                st.error("NAS Alerted: Sending GPS & Patient Data.")
-        
-        with c2:
-            target = st.selectbox("Destination Hospital", list(st.session_state.beds.keys()))
-            if st.button(f"Transfer Data to {target}", use_container_width=True):
-                if st.session_state.beds[target] > 0:
-                    st.success(f"Bed Reserved at {target}!")
-                    st.session_state.beds[target] -= 1
-                else:
-                    st.warning("No Beds Available. Try another facility.")
-
-        st.divider()
-        st.write("### Live Bed Map")
-        m1, m2, m3 = st.columns(3)
-        m1.metric("District Hospital A", f"{st.session_state.beds['District Hospital A']} Beds")
-        m2.metric("Ridge Hospital", "0 Beds", "FULL", delta_color="inverse")
-        m3.metric("Municipal Clinic", f"{st.session_state.beds['Municipal Clinic']} Beds")
-
-    # --- TAB 3: LOGISTICS TRACKER ---
-    with tab3:
-        st.subheader("Supply Chain Monitor")
-        l1, l2, l3 = st.columns(3)
-        l1.metric("ACT (Adult)", st.session_state.inventory["ACT (Adult)"])
-        l2.metric("RDT Kits", st.session_state.inventory["RDT Kits"])
-        l3.metric("Amoxicillin", st.session_state.inventory["Amoxicillin"])
-
-    # --- TAB 4: NHIS CALCULATOR ---
-    with tab4:
-        st.subheader("NHIS Claims Assistant")
-        diag = st.selectbox("Diagnosis", ["Malaria", "Pneumonia", "Hypertension"])
-        rates = {"Malaria": 48.50, "Pneumonia": 85.00, "Hypertension": 62.00}
-        st.write(f"### Estimated Reimbursement: **GHS {rates[diag]:.2f}**")
-        if st.button("Submit Claim"):
-            st.success("Claim sent to NHIA Portal.")
-
-else:
-    st.error("Configure GROQ_API_KEY in Streamlit Secrets.")
-
-
-
+                # Dynamic
