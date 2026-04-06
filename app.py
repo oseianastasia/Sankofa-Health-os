@@ -98,10 +98,23 @@ if api_key:
                     # Generate Treatment
                     stg = client.chat.completions.create(
                         model="llama-3.1-8b-instant",
-                        messages=messages=[{
-    "role": "system", 
-    "content": "You are a Ghanaian Medical Scribe. You MUST respond ONLY in English. Use Ghana Health Service terminology. Do not use any other language."
-}]
+                        messages=messages=                # 2. Use LLM to extract structured data (Strict English + GHS Terms)
+                extraction = client.chat.completions.create(
+                    model="llama-3.1-8b-instant",
+                    messages=[
+                        {
+                            "role": "system", 
+                            "content": "You are a Ghanaian Medical Scribe. You MUST respond ONLY in English. Use Ghana Health Service terminology. Extract: Name, Age, Main Complaint, Duration, and Symptoms."
+                        },
+                        {
+                            "role": "user", 
+                            "content": f"Conversation Transcript: {transcript}"
+                        }
+                    ]
+                )
+
+    
+}
 
                     )
                     st.write(stg.choices[0].message.content)
