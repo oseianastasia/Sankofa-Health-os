@@ -28,7 +28,7 @@ api_key = st.secrets["GROQ_API_KEY"]
 if api_key:
     client = Groq(api_key=api_key)
 
-    # 🗄️ 3. NATIONAL HEALTH DATABASE (Simulated Persistence)
+    # 🗄️ 3. NATIONAL HEALTH DATABASE
     if 'inventory' not in st.session_state:
         st.session_state.inventory = {"ACT (Adult)": 45, "RDT Kits": 12, "Amoxicillin": 80}
     if 'beds' not in st.session_state:
@@ -61,44 +61,21 @@ if api_key:
 
     # --- 6. MODULES ---
 
-    # MODULE: AMBIENT CLINICAL SCRIBE (The "Hands-Free" Heart)
+    # MODULE: AMBIENT CLINICAL SCRIBE
     if menu == "🎙️ Ambient Clinical Scribe":
         st.subheader("Consultation Mode: Ambient Intelligence")
         st.info("The AI is listening to extract clinical data from your conversation in Twi, Ga, or English.")
         
-        # 1. LIVE CONSULTATION AUDIO
         consultation_audio = st.audio_input("Start Consultation Recording")
         
         if consultation_audio:
             with st.spinner("Sankofa AI Scribe is extracting clinical facts..."):
-                # Transcribe conversation (handles local accents/dialects)
                 transcript = client.audio.transcriptions.create(
                     file=("live.wav", consultation_audio.read()), 
                     model="whisper-large-v3"
                 ).text
                 
-                # Extract structured clinical session data
-                extraction = client.chat.completions.create(
-                    model="llama-3.1-8b-instant",
-                    messages=[{
-                        "role": "system", 
-                        "content": "Extract clinical data from this dialogue. Return a summary: Name, Age, Main Complaint, Duration, and Symptoms."
-                    }, {"role": "user", "content": transcript}]
-                )
-                session_data = extraction.choices[0].message.content
-                st.session_state.active_session = session_data
-
-                st.success("✅ Session Auto-Populated")
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.markdown("### 📋 Extracted Patient File")
-                    st.code(session_data, language="markdown")
-                with c2:
-                    st.markdown("### 🏥 Ghana STG Protocol")
-                    # Generate Treatment
-                    stg = client.chat.completions.create(
-                        model="llama-3.1-8b-instant",
-                        messages=messages=                # 2. Use LLM to extract structured data (Strict English + GHS Terms)
+                # AI EXTRACTION WITH LANGUAGE LOCK
                 extraction = client.chat.completions.create(
                     model="llama-3.1-8b-instant",
                     messages=[
@@ -112,85 +89,98 @@ if api_key:
                         }
                     ]
                 )
+                session_data = extraction.choices[0].message.content
+                st.session_state.active_session = session_data
 
-    
-}
+                st.success("✅ Session Auto-Populated")
+                
+                # Vertical Display for Mobile
+                st.markdown("### 📋 Extracted Patient File")
+                st.code(session_data, language="markdown")
+                
+                st.divider()
+                
+                st.markdown("### 🏥 Ghana STG Protocol")
+                protocol = client.chat.completions.create(
+                    model="llama-3.1-8b-instant",
+                    messages=[
+                        {
+                            "role": "system", 
+                            "content": "You are a Ghana Health Service expert. Provide Standard Treatment Guidelines (STG) and NHIS G-DRG codes in English."
+                        },
+                        {
+                            "role": "user", 
+                            "content": session_data
+                        }
+                    ]
+                )
+                st.write(protocol.choices[0].message.content)
+                
+                if "Malaria" in session_data or "ACT" in protocol.choices[0].message.content:
+                    st.session_state.inventory["ACT (Adult)"] -= 1
+                    st.toast("Stock Auto-Deducted: -1 ACT", icon="💊")
 
-                    )
-                    st.write(stg.choices[0].message.content)
-                    
-                    # Logic: Trigger Auto-inventory update if Malaria is detected
-                    if "Malaria" in session_data or "ACT" in stg.choices[0].message.content:
-                        st.session_state.inventory["ACT (Adult)"] -= 1
-                        st.toast("Stock Auto-Deducted: -1 ACT", icon="💊")
-
-    # MODULE: EMERGENCY & REFERRAL (Solving "No-Bed")
+    # MODULE: EMERGENCY & REFERRAL
     elif menu == "🚑 Emergency & Referral":
         st.subheader("Regional Resource Coordination")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write("### 🚨 Dispatch nearest unit")
-            st.markdown('<a href="tel:193" style="text-decoration:none;"><div style="background:#ef4444; color:white; padding:15px; border-radius:10px; text-align:center; font-weight:bold;">📞 CALL NAS 193</div></a>', unsafe_allow_html=True)
-            if st.button("Transmit Patient File to NAS"):
-                st.success("Encrypted History sent to Ambulance Crew tablet.")
-        with col2:
-            target = st.selectbox("Destination Hospital", ["Ridge Hospital", "37 Military", "Korle-Bu"])
-            if st.button(f"Reserve Bed at {target}"):
-                if st.session_state.beds.get(target, 0) > 0:
-                    token = str(uuid.uuid4())[:8].upper()
-                    st.success(f"Bed Secured! Referral Token: {token}")
-                    st.session_state.beds[target] -= 1
-                else:
-                    st.error(f"ALERT: {target} is at capacity. Routing to alternative node.")
+        st.markdown('<a href="tel:193" style="text-decoration:none;"><div style="background:#ef4444; color:white; padding:20px; border-radius:10px; text-align:center; font-weight:bold; font-size:20px;">📞 CALL NAS 193</div></a>', unsafe_allow_html=True)
         
         st.divider()
-        st.write("### 🏥 Live Regional Bed Radar")
-        b1, b2, b3 = st.columns(3)
-        b1.metric("District Hosp A", f"{st.session_state.beds['District Hosp A']} Available")
-        b2.metric("Ridge Hospital", "0 Beds", "FULL (NO-BED ALERT)", delta_color="inverse")
-        b3.metric("37 Military", f"{st.session_state.beds['37 Military']} Available")
+        
+        target = st.selectbox("Select Destination Hospital", ["Ridge Hospital", "37 Military", "Korle-Bu"])
+        if st.button(f"Confirm Bed Availability & Refer"):
+            if st.session_state.beds.get(target, 0) > 0:
+                token = str(uuid.uuid4())[:8].upper()
+                st.success(f"Bed Secured at {target}! Referral Token: {token}")
+                st.session_state.beds[target] -= 1
+            else:
+                st.error(f"ALERT: {target} is FULL. Routing to next available node.")
+        
+        st.divider()
+        st.write("### 🏥 Live Bed Radar")
+        st.metric("Ridge Hospital", "0 Beds", "NO-BED ALERT", delta_color="inverse")
+        st.metric("37 Military", f"{st.session_state.beds['37 Military']} Available")
 
     # MODULE: SMART SUPPLY CHAIN
     elif menu == "📦 Smart Supply Chain":
         st.subheader("Predictive Logistics")
         for item, qty in st.session_state.inventory.items():
-            l1, l2, l3 = st.columns([3, 1, 1])
-            l1.write(f"**{item}**")
-            l2.write(f"In Stock: {qty}")
-            if qty < 20:
-                l3.warning("LOW STOCK")
-                if st.button(f"Restock {item}"):
-                    st.session_state.inventory[item] += 50
-                    st.rerun()
-            else: l3.success("HEALTHY")
+            with st.container():
+                st.write(f"**{item}** | Stock: {qty}")
+                if qty < 20:
+                    st.warning("LOW STOCK ALERT")
+                    if st.button(f"Restock {item}"):
+                        st.session_state.inventory[item] += 50
+                        st.rerun()
+                else:
+                    st.success("Stock Level: Healthy")
+                st.divider()
 
     # MODULE: DISEASE SURVEILLANCE
     elif menu == "📈 District Surveillance":
-        st.subheader("Epidemiological Early Warning")
+        st.subheader("Real-Time Epidemic Map")
         data = pd.DataFrame({"Disease": ["Malaria", "Cholera", "Yellow Fever"], "Cases": [145, 3, 0]})
-        fig = px.bar(data, x='Disease', y='Cases', color='Disease', title="Weekly District Incidence")
+        fig = px.bar(data, x='Disease', y='Cases', color='Disease')
         st.plotly_chart(fig, use_container_width=True)
         if data.loc[data['Disease'] == 'Cholera', 'Cases'].values[0] > 0:
-            st.error("🚨 CHOLERA SIGNAL DETECTED. Automatic alert sent to GHS Public Health Division.")
+            st.error("🚨 CHOLERA SIGNAL DETECTED. Alerts sent to District Health Director.")
 
     # MODULE: PATIENT CARE & ADHERENCE
     elif menu == "👥 Patient Care & Adherence":
-        st.subheader("Chronic Care & Adherence Monitor")
+        st.subheader("Chronic Care Monitoring")
         patients = [
-            {"Name": "Ama Mansah", "Med": "Amlodipine", "Adherence": "92%"},
-            {"Name": "Kwesi Appiah", "Med": "Metformin", "Adherence": "34%"}
+            {"Name": "Ama Mansah", "Med": "Amlodipine", "Adherence": 92},
+            {"Name": "Kwesi Appiah", "Med": "Metformin", "Adherence": 34}
         ]
         for p in patients:
-            c1, c2, c3 = st.columns([2, 2, 1])
-            c1.write(f"**{p['Name']}** ({p['Med']})")
-            if int(p['Adherence'].replace('%','')) < 50:
-                c2.error(f"🚨 Adherence Gap: {p['Adherence']}")
-                if c3.button(f"Send Voice Reminder to {p['Name']}"):
-                    st.toast(f"Twi Adherence Voice-Note Sent to {p['Name']}.")
+            st.write(f"**{p['Name']}** - {p['Med']}")
+            if p['Adherence'] < 50:
+                st.error(f"Adherence: {p['Adherence']}% (Critical)")
+                if st.button(f"Send Twi Reminder to {p['Name']}"):
+                    st.toast("Voice Reminder Sent!")
             else:
-                c2.success(f"Adherence: {p['Adherence']}")
+                st.success(f"Adherence: {p['Adherence']}%")
             st.divider()
 
 else:
-    st.error("GROQ_API_KEY Missing. Add it to your secrets to activate the brain.")
-
+    st.error("GROQ_API_KEY Missing. Add it to your Streamlit Secrets.")
