@@ -98,8 +98,11 @@ if api_key:
                     # Generate Treatment
                     stg = client.chat.completions.create(
                         model="llama-3.1-8b-instant",
-                        messages=[{"role": "system", "content": "Provide Ghana MoH STG treatment for these symptoms."},
-                                  {"role": "user", "content": session_data}]
+                        messages=messages=[{
+    "role": "system", 
+    "content": "You are a Ghanaian Medical Scribe. You MUST respond ONLY in English. Use Ghana Health Service terminology. Do not use any other language."
+}]
+
                     )
                     st.write(stg.choices[0].message.content)
                     
