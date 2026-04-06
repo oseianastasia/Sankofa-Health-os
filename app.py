@@ -10,13 +10,20 @@ st.set_page_config(page_title="Sankofa OS", layout="wide", page_icon="🇬🇭")
 
 st.markdown("""
     <style>
+    /* 1. Sidebar Background */
     [data-testid="stSidebar"] { 
         background-color: #0f172a; 
     }
-    [data-testid="stSidebar"] > div:first-child {
-        width: 100% !important;
+    
+    /* 2. FORCE BRIGHT WHITE TEXT */
+    [data-testid="stSidebar"] p, 
+    [data-testid="stSidebar"] label, 
+    [data-testid="stSidebar"] span, 
+    [data-testid="stSidebar"] div {
+        color: #ffffff !important;
+        font-weight: 500 !important;
     }
-    /* ... rest of the code I gave you ... */
+    ... (the rest of the high-contrast code) ...
     </style>
     """, unsafe_allow_html=True)
 
