@@ -11,21 +11,38 @@ st.set_page_config(page_title="Sankofa OS", layout="wide", page_icon="🇬🇭")
 st.markdown("""
     <style>
     /* 1. Sidebar Background */
-    [data-testid="stSidebar"] { 
-        background-color: #0f172a; 
-    }
+    [data-testid="stSidebar"] { background-color: #0f172a; }
     
-    /* 2. FORCE BRIGHT WHITE TEXT */
-    [data-testid="stSidebar"] p, 
-    [data-testid="stSidebar"] label, 
-    [data-testid="stSidebar"] span, 
-    [data-testid="stSidebar"] div {
+    /* 2. Text Colors */
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span {
         color: #ffffff !important;
         font-weight: 500 !important;
     }
-    ... (the rest of the high-contrast code) ...
+
+    /* 3. GHS Badge (Dark Teal) */
+    .status-badge { 
+        background-color: #0d2121; border: 1px solid #134e4a; padding: 16px; 
+        border-radius: 10px; margin-top: 10px; font-size: 14px; color: #ffffff !important; 
+        font-weight: bold; text-align: left;
+    }
+
+    /* 4. Node Badge (Deep Navy) */
+    .node-badge { 
+        background-color: #1e293b; padding: 16px; border-radius: 10px; 
+        margin-top: 12px; font-size: 14px; text-align: left; color: #ffffff !important;
+    }
+
+    /* 5. Header Styling */
+    .ghs-header { 
+        background: white; padding: 20px; border-radius: 15px; 
+        border-left: 12px solid #ef4444; margin-bottom: 20px; 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+    }
+    
+    .stButton>button { width: 100%; border-radius: 10px; font-weight: 700; height: 3em; }
     </style>
     """, unsafe_allow_html=True)
+
 
 # 🔑 2. SYSTEM CORE
 api_key = st.secrets.get("GROQ_API_KEY")
@@ -71,7 +88,7 @@ with st.sidebar:
     
     st.markdown(f"""
         <div class="status-badge">● GHS ENCRYPTED CONNECTION</div>
-        <div class="node-badge">📍 Node: {st.session_state.current_node} | {datetime.now().strftime('%Y-%m-%d')}</div>
+        <div class="node-badge">📍 Node: {st.session_state.current_node} | 2026-04-06</div>
     """, unsafe_allow_html=True)
 
 # 🏥 4. HEADER
