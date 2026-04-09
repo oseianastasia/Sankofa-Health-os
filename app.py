@@ -166,14 +166,73 @@ elif menu == "📈 Disease Surveillance":
     st.plotly_chart(px.bar(df, x='Disease', y='Cases', color='Cases', color_continuous_scale="Reds"), use_container_width=True)
     if 3 in df.values: st.error(f"🚨 CLUSTER ALERT: Cholera detected at {st.session_state.current_node}.")
 
-# 5. PATIENT CARE
+# 5.  # 5. PATIENT CARE (SANKOFA MULTILINGUAL CLOSED-LOOP)
 elif menu == "👥 Patient Care & Adherence":
-    st.subheader("Community Follow-up")
-    p_name = st.text_input("Patient Name")
-    lang = st.selectbox("Language", ["Twi", "Ga", "Ewe", "Hausa", "English"])
-    chan = st.radio("Channel", ["💬 WhatsApp", "📩 SMS", "📞 Voice"])
-    if st.button("Activate Follow-up"):
-        st.success(f"Monitoring {p_name} in {lang} via {chan}.")
+    st.subheader("🌍 Multilingual Community Follow-up")
+    
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        st.markdown("### 📡 Initiate Monitoring")
+        p_name = st.text_input("Patient Name", placeholder="e.g. Ama Mansa")
+        p_type = st.selectbox("Monitoring Type", ["Maternal Postpartum", "Chronic Care", "Malaria Recovery"])
+        # Language selection for the AI context
+        target_lang = st.selectbox("Primary Language", ["Twi", "Hausa", "Ga", "Ewe", "Dagbani", "English"])
+        chan = st.radio("Channel", ["💬 WhatsApp", "📩 SMS", "📞 AI Voice"])
+        
+        if st.button("Activate Multilingual Loop"):
+            st.success(f"Protocol Active: Monitoring {p_name} in {target_lang}.")
+
+    with col2:
+        st.markdown("### 📥 Multilingual AI Analysis")
+        st.info(f"AI is configured to interpret responses in **{target_lang}**.")
+        
+        # Simulated responses for demo purposes:
+        # Twi: "Me ti pae me yie na me ho roro me" (My head hurts and I have chills)
+        # Hausa: "Ina jin jiri kuma ina zubar da jini" (I feel dizzy and I am bleeding)
+        raw_feedback = st.text_area("Simulated Incoming Message:", 
+                                   placeholder=f"Enter text in {target_lang}...")
+        
+        if st.button("Translate & Analyze"):
+            if raw_feedback:
+                with st.spinner("Sankofa AI Analyzing Language & Sentiment..."):
+                    # The AI logic to bridge the language gap
+                    analysis_res = client.chat.completions.create(
+                        model="llama-3.1-8b-instant",
+                        messages=[
+                            {"role": "system", "content": f"""
+                                You are a medical translator for the Ghana Health Service. 
+                                1. Translate the user's message from {target_lang} to English.
+                                2. Identify if there are 'Danger Signs' (bleeding, severe pain, fever, dizziness).
+                                3. Respond in JSON format: {{"translation": "...", "danger_detected": true/false}}
+                            """},
+                            {"role": "user", "content": raw_feedback}
+                        ],
+                        response_format={"type": "json_object"}
+                    )
+                    
+                    import json
+                    data = json.loads(analysis_res.choices[0].message.content)
+                    
+                    st.write(f"**English Translation:** {data['translation']}")
+                    
+                    if data['danger_detected']:
+                        st.error(f"🚨 CRITICAL ALERT: Danger signs detected in {target_lang} response!")
+                        st.markdown(f"""
+                            <div style="background-color:#fee2e2; border:2px solid #ef4444; padding:15px; border-radius:10px; color:#b91c1c;">
+                                <strong>Emergency Protocol:</strong> Immediate CHPS nurse intervention required for {p_name}.
+                            </div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.success("AI Analysis: Patient appears stable.")
+            else:
+                st.warning("Please enter a message to analyze.")
+
+    st.divider()
+    st.markdown("### 📊 Regional Language Reach")
+    lang_stats = pd.DataFrame({"Language": ["Twi", "English", "Hausa", "Ga", "Ewe"], "Active Users": [450, 310, 120, 85, 60]})
+    st.bar_chart(lang_stats.set_index("Language"))
+
 
 # 6. NHIS CLAIMS
 elif menu == "💳 NHIS Claims Portal":
